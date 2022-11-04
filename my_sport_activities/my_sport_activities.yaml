@@ -1,0 +1,208 @@
+zabbix_export:
+  version: '6.2'
+  date: '2022-11-03T19:27:11Z'
+  host_groups:
+    -
+      uuid: 24b0312af25c4d3382a43c9137a5e641
+      name: 'My sport activities'
+  hosts:
+    -
+      host: 'My sport activities'
+      name: 'My sport activities'
+      groups:
+        -
+          name: 'My sport activities'
+      items:
+        -
+          name: 'My sport hours (total ytd)'
+          type: TRAP
+          key: my.sport.hours
+          delay: '0'
+          value_type: FLOAT
+          units: '!h'
+          preprocessing:
+            -
+              type: REGEX
+              parameters:
+                - '(.*)'
+                - \1
+        -
+          name: 'My sport hours (avg/day)'
+          type: DEPENDENT
+          key: my.sport.hours.avg
+          delay: '0'
+          value_type: FLOAT
+          units: '!h/day'
+          preprocessing:
+            -
+              type: JAVASCRIPT
+              parameters:
+                - |
+                  var now = new Date();
+                  var start = new Date(now.getFullYear(), 0, 0);
+                  var diff = now - start;
+                  var oneDay = 1000 * 60 * 60 * 24;
+                  var day = Math.floor(diff / oneDay);
+                  
+                  return value / day;
+            -
+              type: REGEX
+              parameters:
+                - '(^.*$)'
+                - \1
+          master_item:
+            key: my.sport.hours
+        -
+          name: 'My sport hours (difference between total and target)'
+          type: CALCULATED
+          key: my.sport.hours.diff
+          delay: 1h
+          value_type: FLOAT
+          units: '!h'
+          params: 'last(//my.sport.hours) - last(//my.sport.hours.target)'
+          triggers:
+            -
+              expression: 'last(/My sport activities/my.sport.hours.diff)<5'
+              name: 'Hour target is getting close'
+              priority: WARNING
+            -
+              expression: 'last(/My sport activities/my.sport.hours.diff)<1'
+              name: 'Hour target is getting too close'
+              priority: AVERAGE
+            -
+              expression: 'last(/My sport activities/my.sport.hours.diff)<0'
+              name: 'You are behind the hour target!'
+              priority: HIGH
+        -
+          name: 'My sport hours (target ytd)'
+          type: CALCULATED
+          key: my.sport.hours.target
+          delay: 1h
+          units: '!h'
+          params: '1'
+          preprocessing:
+            -
+              type: JAVASCRIPT
+              parameters:
+                - |
+                  var now = new Date();
+                  var start = new Date(now.getFullYear(), 0, 0);
+                  var diff = now - start;
+                  var oneDay = 1000 * 60 * 60 * 24;
+                  var day = Math.floor(diff / oneDay);
+                  
+                  return day;
+        -
+          name: 'My sport kilometers (total ytd)'
+          type: TRAP
+          key: my.sport.kilometers
+          delay: '0'
+          value_type: FLOAT
+          units: '!km'
+          preprocessing:
+            -
+              type: MULTIPLIER
+              parameters:
+                - '1'
+        -
+          name: 'My sport kilometers (avg/day)'
+          type: DEPENDENT
+          key: my.sport.kilometers.avg
+          delay: '0'
+          value_type: FLOAT
+          units: '!km/day'
+          preprocessing:
+            -
+              type: JAVASCRIPT
+              parameters:
+                - |
+                  var now = new Date();
+                  var start = new Date(now.getFullYear(), 0, 0);
+                  var diff = now - start;
+                  var oneDay = 1000 * 60 * 60 * 24;
+                  var day = Math.floor(diff / oneDay);
+                  
+                  return value / day;
+            -
+              type: REGEX
+              parameters:
+                - '(^.*$)'
+                - \1
+          master_item:
+            key: my.sport.kilometers
+        -
+          name: 'My sport kilometers (difference between total and target)'
+          type: CALCULATED
+          key: my.sport.kilometers.diff
+          delay: 1h
+          value_type: FLOAT
+          units: '!km'
+          params: 'last(//my.sport.kilometers) - last(//my.sport.kilometers.target)'
+          triggers:
+            -
+              expression: 'last(/My sport activities/my.sport.kilometers.diff)<50'
+              name: 'Kilometer target is getting close'
+              priority: WARNING
+            -
+              expression: 'last(/My sport activities/my.sport.kilometers.diff)<10'
+              name: 'Kilometer target is getting too close'
+              priority: AVERAGE
+            -
+              expression: 'last(/My sport activities/my.sport.kilometers.diff)<0'
+              name: 'You are behind the kilometer target!'
+              priority: HIGH
+        -
+          name: 'My sport kilometers (target ytd)'
+          type: CALCULATED
+          key: my.sport.kilometers.target
+          delay: 1h
+          units: '!km'
+          params: '1'
+          preprocessing:
+            -
+              type: JAVASCRIPT
+              parameters:
+                - |
+                  var now = new Date();
+                  var start = new Date(now.getFullYear(), 0, 0);
+                  var diff = now - start;
+                  var oneDay = 1000 * 60 * 60 * 24;
+                  var day = Math.floor(diff / oneDay);
+                  
+                  return day*10;
+      inventory_mode: DISABLED
+  graphs:
+    -
+      name: 'My training'
+      width: '1500'
+      height: '400'
+      graph_items:
+        -
+          color: 1A7C11
+          calc_fnc: ALL
+          item:
+            host: 'My sport activities'
+            key: my.sport.hours
+        -
+          sortorder: '1'
+          color: '274482'
+          calc_fnc: ALL
+          item:
+            host: 'My sport activities'
+            key: my.sport.hours.target
+        -
+          sortorder: '2'
+          color: F63100
+          yaxisside: RIGHT
+          calc_fnc: ALL
+          item:
+            host: 'My sport activities'
+            key: my.sport.kilometers
+        -
+          sortorder: '3'
+          color: 2774A4
+          yaxisside: RIGHT
+          calc_fnc: ALL
+          item:
+            host: 'My sport activities'
+            key: my.sport.kilometers.target
